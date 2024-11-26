@@ -1,51 +1,77 @@
 import fs from "fs/promises";
 
-import { RawEntry, PlaceId } from "../../src/js/types";
+import {
+  RawCoreEntry,
+  ProcessedCoreEntry,
+  RawPolicy,
+  PlaceId,
+  Place,
+  BaseUnifiedPolicy,
+} from "../../src/js/types";
 
-export type Attachment = {
+export interface Attachment {
   fileName: string;
   directusId: string;
   isDoc: boolean;
-};
+}
 
 export type CitationType = "city code" | "media report" | "other";
 
-export type Citation = {
+export interface Citation {
   description: string;
   type: CitationType;
   url: string | null;
   notes: string | null;
   attachments: Attachment[];
+}
+
+export interface ExtendedPolicy {
+  reporter: string | null;
+  requirements: string[];
+  citations: Citation[];
+}
+
+export interface RawExtendedEntry {
+  legacy?: ExtendedPolicy;
+  reduce_min?: ExtendedPolicy[];
+  rm_min?: ExtendedPolicy[];
+  add_max?: ExtendedPolicy[];
+}
+
+export interface RawCompleteEntry {
+  place: Place;
+  legacy?: BaseUnifiedPolicy & { date: string | null } & ExtendedPolicy;
+  reduce_min?: Array<RawPolicy & ExtendedPolicy>;
+  rm_min?: Array<RawPolicy & ExtendedPolicy>;
+  add_max?: Array<RawPolicy & ExtendedPolicy>;
 };
 
-export type ExtendedEntry = {
-  legacy: {
-    reporter: string | null;
-    requirements: string[];
-    citations: Citation[];
-  };
-};
+export interface ProcessedExtendedEntry {
+  unifiedPolicy: ExtendedPolicy;
+}
+export type ProcessedCompleteEntry = ProcessedCoreEntry &
+  ProcessedExtendedEntry;
 
-export type CompleteEntry = RawEntry & ExtendedEntry;
-
-export async function readCoreData(): Promise<Record<PlaceId, RawEntry>> {
+export async function readRawCoreData(): Promise<
+  Record<PlaceId, RawCoreEntry>
+> {
   const raw = await fs.readFile("data/core.json", "utf8");
   return JSON.parse(raw);
 }
 
-export async function readExtendedData(): Promise<
-  Record<PlaceId, ExtendedEntry>
+export async function readRawExtendedData(): Promise<
+  Record<PlaceId, RawExtendedEntry>
 > {
   const raw = await fs.readFile("data/extended.json", "utf8");
   return JSON.parse(raw);
 }
 
-export async function readCompleteData(): Promise<
-  Record<PlaceId, CompleteEntry>
+export async function readRawCompleteData(): Promise<
+  Record<PlaceId, RawCompleteEntry>
 > {
   const [coreData, extendedData] = await Promise.all([
-    readCoreData(),
-    readExtendedData(),
+    readRawCoreData(),
+    readRawExtendedData(),
   ]);
   return Object.fromEntries(
     Object.entries(coreData).map(([placeId, core]) => [

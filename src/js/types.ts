@@ -45,20 +45,37 @@ export interface Place {
   repeal: boolean;
 }
 
-interface BaseLegacyReform {
+export type PolicyType =
+  | "reduce parking minimums"
+  | "remove parking minimums"
+  | "add parking maximums";
+
+/// Every policy has these values, new-style and legacy. This is missing some fields like `date`.
+export interface BasePolicy {
   summary: string;
   status: ReformStatus;
-  policy: string[];
   scope: string[];
   land: string[];
 }
 
-export interface RawEntry {
+/// Coercing new-style policies & legacy policies into the same type to simplify the web app.
+/// Still missing certain values like `date`.
+export type BaseUnifiedPolicy = BasePolicy & { policy: PolicyType[] };
+
+/// Like BasePolicy, but with unprocessed values added.
+export type RawPolicy = BasePolicy & { date: string | null };
+
+/// An entry from data/core.json that's not yet processed.
+export interface RawCoreEntry {
   place: Place;
-  legacy: BaseLegacyReform & { date: string | null };
+  legacy?: BaseUnifiedPolicy & { date: string | null };
+  reduce_min?: RawPolicy[];
+  rm_min?: RawPolicy[];
+  add_max?: RawPolicy[];
 }
 
-export interface PlaceEntry {
+/// A fully processed data/core.json entry.
+export interface ProcessedCoreEntry {
   place: Place & { url: string };
-  unifiedPolicy: BaseLegacyReform & { date: Date | null };
+  unifiedPolicy: BaseUnifiedPolicy & { date: Date | null };
 }

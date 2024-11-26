@@ -5,7 +5,7 @@ import fs from "fs/promises";
 
 import Papa from "papaparse";
 
-import { readCompleteData } from "./lib/data";
+import { readRawCompleteData } from "./lib/data";
 import { placeIdToUrl } from "../src/js/data";
 
 function assertExpectedNumEntries(jsonKeys: string[], csv: string): void {
@@ -17,7 +17,7 @@ function assertExpectedNumEntries(jsonKeys: string[], csv: string): void {
 }
 
 async function main(): Promise<void> {
-  const completeData = await readCompleteData();
+  const completeData = await readRawCompleteData();
   const data = Object.entries(completeData).map(([placeId, entry]) => ({
     place: entry.place.name,
     state: entry.place.state,

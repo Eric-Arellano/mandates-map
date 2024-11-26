@@ -4,19 +4,31 @@
 
 import fetch from "node-fetch";
 
-import { readCompleteData } from "./lib/data";
+import { readRawExtendedData, ExtendedPolicy, Citation } from "./lib/data";
+
+function getCitations(policies: ExtendedPolicy[] | undefined): Citation[] {
+  return policies?.flatMap((policy) => policy.citations) ?? [];
+}
 
 export async function mapPlaceToCitationLinks(): Promise<
   Record<string, string[]>
 > {
-  const data = await readCompleteData();
+  const data = await readRawExtendedData();
   return Object.fromEntries(
-    Object.entries(data).map(([placeId, entry]) => [
-      placeId,
-      entry.legacy.citations
-        .map((citation) => citation.url)
-        .filter((url): url is string => url !== null),
-    ]),
+    Object.entries(data).map(([placeId, entry]) => {
+      const citations = [
+        ...(entry.legacy?.citations ?? []),
+        ...getCitations(entry.add_max),
+        ...getCitations(entry.rm_min),
+        ...getCitations(entry.reduce_min),
+      ];
+      return [
+        placeId,
+        citations
+          .map((citation) => citation.url)
+          .filter((url): url is string => url !== null),
+      ];
+    }),
   );
 }
 

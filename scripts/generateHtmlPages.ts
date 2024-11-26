@@ -7,7 +7,7 @@ import Handlebars from "handlebars";
 
 import { escapePlaceId } from "../src/js/data";
 import { PlaceId } from "../src/js/types";
-import { readCompleteData, CompleteEntry } from "./lib/data";
+import { readRawCompleteData, RawCompleteEntry } from "./lib/data";
 
 export async function loadTemplate(): Promise<HandlebarsTemplateDelegate> {
   const raw = await fs.readFile("scripts/city_detail.html.handlebars", "utf-8");
@@ -16,7 +16,7 @@ export async function loadTemplate(): Promise<HandlebarsTemplateDelegate> {
 
 export function renderHandlebars(
   placeId: string,
-  entry: CompleteEntry,
+  entry: RawCompleteEntry,
   template: HandlebarsTemplateDelegate,
 ): string {
   return template({
@@ -37,7 +37,7 @@ export function renderHandlebars(
 
 async function generatePage(
   placeId: string,
-  entry: CompleteEntry,
+  entry: RawCompleteEntry,
   template: HandlebarsTemplateDelegate,
 ): Promise<void> {
   await fs.writeFile(
@@ -46,7 +46,9 @@ async function generatePage(
   );
 }
 
-async function assertEveryPlaceGenerated(data: Record<PlaceId, CompleteEntry>) {
+async function assertEveryPlaceGenerated(
+  data: Record<PlaceId, RawCompleteEntry>,
+) {
   const htmlPages = await fs.readdir("city_detail/");
   const validPages = new Set(htmlPages);
   const invalidPlaces = Object.entries(data)
@@ -63,7 +65,7 @@ async function assertEveryPlaceGenerated(data: Record<PlaceId, CompleteEntry>) {
 async function main(): Promise<void> {
   const [template, data] = await Promise.all([
     loadTemplate(),
-    readCompleteData(),
+    readRawCompleteData(),
   ]);
   await Promise.all(
     Object.entries(data).map(([placeId, entry]) =>

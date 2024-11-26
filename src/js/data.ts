@@ -1,4 +1,11 @@
-import { PlaceId, PlaceEntry, RawEntry, Date } from "./types";
+import {
+  PlaceId,
+  ProcessedCoreEntry,
+  RawCoreEntry,
+  Date,
+  PolicyType,
+  RawPolicy,
+} from "./types";
 
 const countryMapping: Partial<Record<string, string>> = {
   AU: "Australia",
@@ -27,23 +34,70 @@ export function placeIdToUrl(v: string): string {
   return `https://parkingreform.org/mandates-map/city_detail/${escapePlaceId(v)}.html`;
 }
 
-export default async function readData(): Promise<Record<PlaceId, PlaceEntry>> {
+export function processRawCoreEntry(
+  placeId: PlaceId,
+  raw: RawCoreEntry,
+): ProcessedCoreEntry {
+  if (raw.legacy) {
+    const date = raw.legacy.date ? new Date(raw.legacy.date) : null;
+    return {
+      place: {
+        ...raw.place,
+        country: countryMapping[raw.place.country] ?? raw.place.country,
+        url: placeIdToUrl(placeId),
+      },
+      unifiedPolicy: { ...raw.legacy, date },
+    };
+  }
+
+  const numNonLegacy =
+    (raw.add_max?.length || 0) +
+    (raw.reduce_min?.length || 0) +
+    (raw.rm_min?.length || 0);
+  if (numNonLegacy > 1) {
+    throw new Error(
+      `${placeId} has ${numNonLegacy} new-style policies, but is missing a legacy reform. ` +
+        "It must either have exactly one new-style policy or set a legacy reform",
+    );
+  }
+
+  let newStylePolicy: RawPolicy;
+  let policyType: PolicyType;
+  if (raw.add_max) {
+    newStylePolicy = raw.add_max[0];
+    policyType = "add parking maximums";
+  } else if (raw.reduce_min) {
+    newStylePolicy = raw.reduce_min[0];
+    policyType = "reduce parking minimums";
+  } else if (raw.rm_min) {
+    newStylePolicy = raw.rm_min[0];
+    policyType = "remove parking minimums";
+  } else {
+    throw new Error(`${placeId} has no policies set (new-style or legacy).`);
+  }
+
+  const date = newStylePolicy.date ? new Date(newStylePolicy.date) : null;
+  return {
+    place: {
+      ...raw.place,
+      country: countryMapping[raw.place.country] ?? raw.place.country,
+      url: placeIdToUrl(placeId),
+    },
+    unifiedPolicy: { ...newStylePolicy, date, policy: [policyType] },
+  };
+}
+
+export default async function readData(): Promise<
+  Record<PlaceId, ProcessedCoreEntry>
+> {
   const rawData = (await import("../../data/core.json")) as unknown as Record<
     PlaceId,
-    RawEntry
+    RawCoreEntry
   >;
   return Object.fromEntries(
-    Object.entries(rawData).map(([placeId, entry]) => {
-      const date = entry.legacy.date ? new Date(entry.legacy.date) : null;
-      const updated = {
-        place: {
-          ...entry.place,
-          country: countryMapping[entry.place.country] ?? entry.place.country,
-          url: placeIdToUrl(placeId),
-        },
-        unifiedPolicy: { ...entry.legacy, date },
-      };
-      return [placeId, updated];
-    }),
+    Object.entries(rawData).map(([placeId, entry]) => [
+      placeId,
+      processRawCoreEntry(placeId, entry),
+    ]),
   );
 }
