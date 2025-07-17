@@ -17,11 +17,11 @@ test.describe("PlaceFilterManager.matchedPolicyRecords()", () => {
     return {
       searchInput: null,
       policyTypeFilter: "any parking reform",
+      status: "adopted",
       allMinimumsRemovedToggle: false,
       includedPolicyChanges: new Set(ALL_POLICY_TYPE),
       scope: new Set(["citywide", "city center / business district"]),
       landUse: new Set(["all uses", "commercial", "other"]),
-      status: new Set(["adopted"]),
       country: new Set(["United States", "Brazil"]),
       placeType: new Set(["city", "county"]),
       year: new Set(["2023", "2024"]),
@@ -110,10 +110,11 @@ test.describe("PlaceFilterManager.matchedPolicyRecords()", () => {
 
     // The below filters should have no impact.
     manager.update({
+      // TODO: this should have an impact
+      status: "repealed",
       allMinimumsRemovedToggle: true,
       scope: new Set(),
       landUse: new Set(),
-      status: new Set(),
       year: new Set(),
     });
     expect(manager.matchedPlaces).toEqual({
@@ -179,7 +180,7 @@ test.describe("PlaceFilterManager.matchedPolicyRecords()", () => {
     expect(manager.matchedPlaces).toEqual({});
     manager.update({ landUse: defaultState().landUse });
 
-    manager.update({ status: new Set(["repealed"]) });
+    manager.update({ status: "repealed" });
     expect(manager.matchedPlaces).toEqual({});
     manager.update({ status: defaultState().status });
 
@@ -223,7 +224,7 @@ test.describe("PlaceFilterManager.matchedPolicyRecords()", () => {
     });
     manager.update({ landUse: defaultState().landUse });
 
-    manager.update({ status: new Set(["repealed"]) });
+    manager.update({ status: "repealed" });
     expect(manager.matchedPlaces).toEqual({});
     manager.update({ status: defaultState().status });
 
@@ -285,7 +286,7 @@ test.describe("PlaceFilterManager.matchedPolicyRecords()", () => {
       allMinimumsRemovedToggle: false,
     });
 
-    manager.update({ status: new Set(["repealed"]) });
+    manager.update({ status: "repealed" });
     expect(manager.matchedPlaces).toEqual({});
     manager.update({ status: defaultState().status });
 
